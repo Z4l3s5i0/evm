@@ -31,11 +31,13 @@ pub trait Interpreter<H> {
 	type Trap;
 
 	/// Deconstruct the interpreter.
-	fn deconstruct(self) -> (Self::State, Vec<u8>);
+	fn deconstruct(self) -> (Self::State, Vec<u8>, u64);
 	/// Get a reference to the internal state.
 	fn state(&self) -> &Self::State;
 	/// Get a mutable reference to the internal state.
 	fn state_mut(&mut self) -> &mut Self::State;
+	/// Increment the instruction count.
+	fn increment_instruction_count(&mut self, count: u64);
 	/// Run the interpreter.
 	fn run(&mut self, handle: &mut H) -> Capture<ExitResult, Self::Trap>;
 }

@@ -104,6 +104,7 @@ where
 						result: exit,
 						substate: Some(machine.0),
 						retval: machine.1,
+						instruction_count: machine.2,
 					};
 					let feedback_result = self.invoker.exit_substack(
 						upward.invoke,
@@ -269,6 +270,7 @@ where
 							result: sub_result,
 							substate: Some(sub_machine.0),
 							retval: sub_machine.1,
+							instruction_count: sub_machine.2,
 						};
 
 						match invoker.exit_substack(trap_data, sub_exit, &mut machine, backend) {
@@ -360,6 +362,7 @@ where
 							result: ret,
 							substate: Some(machine.0),
 							retval: machine.1,
+							instruction_count: machine.2,
 						};
 						Err(Capture::Exit(call_stack.invoker.finalize_transact(
 							&transact_invoke,
@@ -477,6 +480,7 @@ where
 					result: ExitFatal::Unfinished.into(),
 					substate: Some(last_machine.0),
 					retval: last_machine.1,
+					instruction_count: last_machine.2,
 				};
 				let _ = call_stack.invoker.exit_substack(
 					parent.invoke,
@@ -496,6 +500,7 @@ where
 				result: ExitFatal::Unfinished.into(),
 				substate: Some(last_machine.0),
 				retval: last_machine.1,
+				instruction_count: last_machine.2,
 			};
 			let _ =
 				call_stack
@@ -537,6 +542,7 @@ where
 				result: ret,
 				substate: Some(machine.0),
 				retval: machine.1,
+				instruction_count: machine.2,
 			};
 			invoker.finalize_transact(&transact_invoke, exit, backend)
 		}

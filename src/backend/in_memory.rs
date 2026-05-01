@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-
+use serde::{Deserialize, Serialize};
 use crate::uint::{H160, H256, U256, U256Ext};
 use crate::{
 	backend::OverlayedChangeSet,
@@ -7,7 +7,7 @@ use crate::{
 };
 
 /// Environment information of an in-memory backend.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InMemoryEnvironment {
 	/// Past block hashes.
 	pub block_hashes: BTreeMap<U256, H256>,
@@ -34,7 +34,7 @@ pub struct InMemoryEnvironment {
 }
 
 /// In-memory account.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct InMemoryAccount {
 	/// Balance.
 	pub balance: U256,
@@ -57,7 +57,7 @@ pub struct InMemorySuicideInfo {
 }
 
 /// In-memory backend.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InMemoryBackend {
 	/// Environment information.
 	pub environment: InMemoryEnvironment,

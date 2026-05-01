@@ -17,6 +17,8 @@ pub struct InvokerExit<S> {
 	pub substate: Option<S>,
 	/// The return data.
 	pub retval: Vec<u8>,
+	/// The instruction count.
+	pub instruction_count: u64,
 }
 
 /// An invoker, responsible for pushing/poping values in the call stack.

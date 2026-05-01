@@ -112,8 +112,8 @@ impl<'etable, S, H, ES: Etable<H, State = S>> Interpreter<H> for EtableInterpret
 	type State = S;
 	type Trap = ES::Trap;
 
-	fn deconstruct(self) -> (ES::State, Vec<u8>) {
-		(self.machine.state, self.machine.retval)
+	fn deconstruct(self) -> (ES::State, Vec<u8>, u64) {
+		(self.machine.state, self.machine.retval, self.machine.instruction_count)
 	}
 
 	fn state(&self) -> &Self::State {
@@ -122,6 +122,10 @@ impl<'etable, S, H, ES: Etable<H, State = S>> Interpreter<H> for EtableInterpret
 
 	fn state_mut(&mut self) -> &mut Self::State {
 		&mut self.machine.state
+	}
+
+	fn increment_instruction_count(&mut self, count: u64) {
+		self.machine.instruction_count += count;
 	}
 
 	fn run(&mut self, handle: &mut H) -> Capture<ExitResult, Self::Trap> {
@@ -176,6 +180,7 @@ impl<'etable, S, H, ES: Etable<H, State = S>> StepInterpreter<H>
 			return Err(Capture::Exit(ExitSucceed::Stopped.into()));
 		}
 
+		self.machine.instruction_count += 1;
 		let control = self.etable.eval(&mut self.machine, handle, self.position);
 
 		match control {

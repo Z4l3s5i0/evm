@@ -132,6 +132,7 @@ where
 				result: r,
 				substate: Some(state),
 				retval,
+				instruction_count: 0,
 			}));
 		}
 

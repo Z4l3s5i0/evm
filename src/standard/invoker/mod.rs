@@ -74,6 +74,8 @@ pub struct TransactValue {
 	pub call_create: TransactValueCallCreate,
 	/// Used gas.
 	pub used_gas: U256,
+	/// Total instructions executed.
+	pub instruction_count: u64,
 }
 
 /// Transact gas price.
@@ -345,6 +347,7 @@ where
 					result: Err(ExitException::NotEOA.into()),
 					substate: None,
 					retval: Vec::new(),
+					instruction_count: 0,
 				}),
 			));
 		}
@@ -359,6 +362,7 @@ where
 						result: Err(err),
 						substate: None,
 						retval: Vec::new(),
+						instruction_count: 0,
 					}),
 				));
 			}
@@ -374,6 +378,7 @@ where
 						result: Err(err),
 						substate: None,
 						retval: Vec::new(),
+						instruction_count: 0,
 					}),
 				));
 			}
@@ -548,6 +553,7 @@ where
 		result.map(|call_create| TransactValue {
 			call_create,
 			used_gas,
+			instruction_count: exit.instruction_count,
 		})
 	}
 
@@ -647,6 +653,7 @@ where
 							result: Err(ExitException::CallTooDeep.into()),
 							substate: Some(substate),
 							retval: Vec::new(),
+							instruction_count: 0,
 						}),
 					)));
 				}
@@ -664,6 +671,7 @@ where
 							result: Err(ExitException::OutOfFund.into()),
 							substate: Some(substate),
 							retval: Vec::new(),
+							instruction_count: 0,
 						}),
 					)));
 				}
@@ -726,6 +734,7 @@ where
 							result: Err(ExitException::CallTooDeep.into()),
 							substate: Some(substate),
 							retval: Vec::new(),
+							instruction_count: 0,
 						}),
 					)));
 				}
@@ -741,6 +750,7 @@ where
 							result: Err(ExitException::OutOfFund.into()),
 							substate: Some(substate),
 							retval: Vec::new(),
+							instruction_count: 0,
 						}),
 					)));
 				}
@@ -758,6 +768,7 @@ where
 								result: Err(err),
 								substate: Some(substate),
 								retval: Vec::new(),
+								instruction_count: 0,
 							}),
 						)));
 					}
@@ -787,6 +798,8 @@ where
 		parent: &mut Self::Interpreter,
 		handler: &mut H,
 	) -> Result<(), ExitError> {
+		parent.increment_instruction_count(exit.instruction_count);
+
 		let mut strategy = match &exit.result {
 			Ok(_) => MergeStrategy::Commit,
 			Err(ExitError::Exception(ExitException::OutOfFund)) => MergeStrategy::Revert,

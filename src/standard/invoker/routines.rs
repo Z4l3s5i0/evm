@@ -48,6 +48,7 @@ where
 					result: Err(err),
 					substate: Some(state),
 					retval: Vec::new(),
+					instruction_count: 0,
 				}));
 			}
 		}
@@ -93,6 +94,7 @@ where
 				result: Err(err),
 				substate: Some(state),
 				retval: Vec::new(),
+				instruction_count: 0,
 			}));
 		}
 	}
@@ -102,6 +104,7 @@ where
 			result: Err(ExitException::CreateCollision.into()),
 			substate: Some(state),
 			retval: Vec::new(),
+			instruction_count: 0,
 		}));
 	}
 
@@ -113,6 +116,7 @@ where
 					result: Err(err),
 					substate: Some(state),
 					retval: Vec::new(),
+					instruction_count: 0,
 				}));
 			}
 		}
@@ -166,6 +170,7 @@ where
 				result: Err(err),
 				substate: None,
 				retval: Vec::new(),
+				instruction_count: 0,
 			}),
 		)),
 	}

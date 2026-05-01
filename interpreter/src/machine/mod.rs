@@ -19,6 +19,8 @@ pub struct Machine<S> {
 	pub memory: Memory,
 	/// Stack.
 	pub stack: Stack,
+	/// Total instructions executed by this machine.
+	pub instruction_count: u64,
 	/// Extra state,
 	pub state: S,
 }
@@ -38,6 +40,7 @@ impl<S> Machine<S> {
 			retval: Vec::new(),
 			memory: Memory::new(memory_limit),
 			stack: Stack::new(stack_limit),
+			instruction_count: 0,
 			state,
 		}
 	}
