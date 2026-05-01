@@ -2,8 +2,6 @@
 members = [
 	"fuzz",
 	"interpreter",
-	"jsontests",
-	"jsontests/proc-macro",
 	"precompile",
 	"future",
 	"compat",
