@@ -340,16 +340,24 @@ where
 		handler.mark_hot(coinbase, TouchKind::Coinbase);
 
 		if handler.code_size(caller) != U256::ZERO {
-			handler.push_substate();
-			return Ok((
-				invoke,
-				InvokerControl::DirectExit(InvokerExit {
-					result: Err(ExitException::NotEOA.into()),
-					substate: None,
-					retval: Vec::new(),
-					instruction_count: 0,
-				}),
-			));
+			let code = handler.code(caller);
+			let is_7702_delegation =
+				AsRef::<TransactArgs>::as_ref(&args).config.eip7702_code_delegation
+					&& code.len() == 23
+					&& &code[0..3] == [0xef, 0x01, 0x00];
+
+			if !is_7702_delegation {
+				handler.push_substate();
+				return Ok((
+					invoke,
+					InvokerControl::DirectExit(InvokerExit {
+						result: Err(ExitException::NotEOA.into()),
+						substate: None,
+						retval: Vec::new(),
+						instruction_count: 0,
+					}),
+				));
+			}
 		}
 
 		match handler.inc_nonce(caller) {

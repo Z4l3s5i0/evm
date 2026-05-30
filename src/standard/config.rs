@@ -88,6 +88,8 @@ pub struct Config {
 	pub eip7516_blob_base_fee: bool,
 	/// EIP-7623: Increase calldata cost with floor.
 	pub eip7623_calldata_floor: bool,
+	/// EIP-7702: Account code delegation.
+	pub eip7702_code_delegation: bool,
 }
 
 impl Config {
@@ -135,6 +137,7 @@ impl Config {
 			eip4844_shard_blob: false,
 			eip7516_blob_base_fee: false,
 			eip7623_calldata_floor: false,
+			eip7702_code_delegation: false,
 		}
 	}
 
@@ -244,6 +247,7 @@ impl Config {
 	pub const fn prague() -> Config {
 		let mut config = Self::cancun();
 		config.eip7623_calldata_floor = true;
+		config.eip7702_code_delegation = true;
 		config
 	}
 
@@ -376,12 +380,20 @@ impl Config {
 
 	/// Floor gas paid for zero data in a transaction.
 	pub fn gas_floor_transaction_zero_data(&self) -> u64 {
-		if self.eip7623_calldata_floor { 10 } else { 0 }
+		if self.eip7623_calldata_floor {
+			10
+		} else {
+			self.gas_transaction_zero_data()
+		}
 	}
 
 	/// Floor gas paid for non-zero data in a transaction.
 	pub fn gas_floor_transaction_non_zero_data(&self) -> u64 {
-		if self.eip7623_calldata_floor { 40 } else { 0 }
+		if self.eip7623_calldata_floor {
+			40
+		} else {
+			self.gas_transaction_non_zero_data()
+		}
 	}
 
 	/// Gas paid per address in transaction access list (see EIP-2930).

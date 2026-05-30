@@ -55,6 +55,11 @@ impl GasometerState {
 				Err(ExitException::OutOfGas.into())
 			} else {
 				self.used_gas += cost;
+
+				if self.used_gas + self.memory_gas < self.floor_gas {
+					self.used_gas = self.floor_gas - self.memory_gas;
+				}
+
 				Ok(())
 			}
 		} else {
@@ -83,6 +88,11 @@ impl GasometerState {
 	pub fn records_transaction_cost(&mut self, cost: TransactionGas) -> Result<(), ExitError> {
 		self.record_gas64(cost.used)?;
 		self.floor_gas = cost.floor;
+
+		if self.used_gas + self.memory_gas < self.floor_gas {
+			self.used_gas = self.floor_gas - self.memory_gas;
+		}
+
 		Ok(())
 	}
 
@@ -94,6 +104,11 @@ impl GasometerState {
 				Err(ExitException::OutOfGas.into())
 			} else {
 				self.memory_gas = memory_cost;
+
+				if self.used_gas + self.memory_gas < self.floor_gas {
+					self.used_gas = self.floor_gas - self.memory_gas;
+				}
+
 				Ok(())
 			}
 		} else {
@@ -129,11 +144,6 @@ impl GasometerState {
 
 		let cost = TransactionCost::call(data, access_list).cost(config);
 
-		// EIP-7623: Check if gas limit meets the floor requirement
-		if config.eip7623_calldata_floor && gas_limit < cost.floor {
-			return Err(ExitException::OutOfGas.into());
-		}
-
 		let mut s = Self::new(gas_limit, false);
 		s.records_transaction_cost(cost)?;
 		Ok(s)
@@ -155,11 +165,6 @@ impl GasometerState {
 
 		let cost = TransactionCost::create(code, access_list).cost(config);
 
-		// EIP-7623: Check if gas limit meets the floor requirement
-		if config.eip7623_calldata_floor && gas_limit < cost.floor {
-			return Err(ExitException::OutOfGas.into());
-		}
-
 		let mut s = Self::new(gas_limit, false);
 		s.records_transaction_cost(cost)?;
 		Ok(s)
@@ -176,12 +181,6 @@ impl GasometerState {
 			self.total_used_gas() - refunded_gas.min(max_refund)
 		} else {
 			self.total_used_gas()
-		};
-
-		let used_gas = if config.eip7623_calldata_floor {
-			used_gas.max(self.floor_gas)
-		} else {
-			used_gas
 		};
 
 		U256::from(self.gas_limit - used_gas)
@@ -1020,6 +1019,14 @@ impl TransactionCost {
 					.saturating_add(
 						(*non_zero_data_len as u64)
 							.saturating_mul(config.gas_floor_transaction_non_zero_data()),
+					)
+					.saturating_add(
+						(*access_list_address_len as u64)
+							.saturating_mul(config.gas_access_list_address()),
+					)
+					.saturating_add(
+						(*access_list_storage_len as u64)
+							.saturating_mul(config.gas_access_list_storage_key()),
 					);
 
 				TransactionGas { used, floor }
@@ -1050,6 +1057,14 @@ impl TransactionCost {
 					.saturating_add(
 						(*non_zero_data_len as u64)
 							.saturating_mul(config.gas_floor_transaction_non_zero_data()),
+					)
+					.saturating_add(
+						(*access_list_address_len as u64)
+							.saturating_mul(config.gas_access_list_address()),
+					)
+					.saturating_add(
+						(*access_list_storage_len as u64)
+							.saturating_mul(config.gas_access_list_storage_key()),
 					);
 
 				TransactionGas { used, floor }
