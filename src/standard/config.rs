@@ -406,6 +406,11 @@ impl Config {
 		if self.eip2930_access_list { 1900 } else { 0 }
 	}
 
+	/// Gas paid per authorization in transaction authorization list (see EIP-7702).
+	pub fn gas_authorization_list_item(&self) -> u64 {
+		if self.eip7702_code_delegation { 2500 } else { 0 }
+	}
+
 	/// Gas paid for accessing cold account.
 	pub fn gas_account_access_cold(&self) -> u64 {
 		if self.eip2929_increase_state_access_gas {

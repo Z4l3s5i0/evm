@@ -1026,7 +1026,7 @@ impl TransactionCost {
 					+ *non_zero_data_len as u64 * config.gas_transaction_non_zero_data()
 					+ *access_list_address_len as u64 * config.gas_access_list_address()
 					+ *access_list_storage_len as u64 * config.gas_access_list_storage_key()
-					+ *authorization_list_len as u64 * 2500;
+					+ *authorization_list_len as u64 * config.gas_authorization_list_item();
 
 				let floor = config
 					.gas_transaction_call()
@@ -1046,7 +1046,10 @@ impl TransactionCost {
 						(*access_list_storage_len as u64)
 							.saturating_mul(config.gas_access_list_storage_key()),
 					)
-					.saturating_add((*authorization_list_len as u64).saturating_mul(2500));
+					.saturating_add(
+						(*authorization_list_len as u64)
+							.saturating_mul(config.gas_authorization_list_item()),
+					);
 
 				TransactionGas { used, floor }
 			}
@@ -1063,7 +1066,7 @@ impl TransactionCost {
 					+ *non_zero_data_len as u64 * config.gas_transaction_non_zero_data()
 					+ *access_list_address_len as u64 * config.gas_access_list_address()
 					+ *access_list_storage_len as u64 * config.gas_access_list_storage_key()
-					+ *authorization_list_len as u64 * 2500;
+					+ *authorization_list_len as u64 * config.gas_authorization_list_item();
 
 				if config.max_initcode_size().is_some() {
 					used += initcode_cost;
@@ -1087,7 +1090,10 @@ impl TransactionCost {
 						(*access_list_storage_len as u64)
 							.saturating_mul(config.gas_access_list_storage_key()),
 					)
-					.saturating_add((*authorization_list_len as u64).saturating_mul(2500));
+					.saturating_add(
+						(*authorization_list_len as u64)
+							.saturating_mul(config.gas_authorization_list_item()),
+					);
 
 				TransactionGas { used, floor }
 			}
