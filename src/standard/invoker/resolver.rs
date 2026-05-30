@@ -9,6 +9,7 @@ use evm_interpreter::{
 };
 
 use crate::{
+	gasometer::GasMutState,
 	invoker::{InvokerControl, InvokerExit},
 	standard::Config,
 };
@@ -102,7 +103,7 @@ impl<'precompile, 'etable, Pre, ES> EtableResolver<'precompile, 'etable, Pre, ES
 
 impl<'precompile, 'etable, H, Pre, ES> Resolver<H> for EtableResolver<'precompile, 'etable, Pre, ES>
 where
-	ES::State: AsRef<RuntimeState> + AsMut<RuntimeState> + AsRef<Config>,
+	ES::State: AsRef<RuntimeState> + AsMut<RuntimeState> + AsRef<Config> + GasMutState,
 	H: RuntimeBackend,
 	Pre: PrecompileSet<ES::State, H>,
 	ES: Etable<H>,
@@ -139,11 +140,7 @@ where
 					} else {
 						100
 					};
-					let runtime_state: &mut RuntimeState = state.as_mut();
-					if runtime_state.gas < U256::from(gas) {
-						return Err(ExitError::from(evm_interpreter::ExitException::OutOfGas));
-					}
-					runtime_state.gas -= U256::from(gas);
+					state.record_gas(U256::from(gas))?;
 					handler.mark_hot(code_address, TouchKind::Access);
 
 					code_address = target;
