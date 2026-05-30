@@ -140,8 +140,9 @@ fn test_eip7702_authorization_list_gas() {
 	// Total expected: 21000 + 2500 = 23500
 	assert_eq!(result.used_gas, U256::from(23500));
 
-	// Verify that authorized_address now has delegation code
+	// Verify that authorized_address now has delegation code and incremented nonce
 	let mut expected_code = vec![0xef, 0x01, 0x00];
 	expected_code.extend_from_slice(target_address.as_bytes());
 	assert_eq!(overlayed_backend.code(authorized_address), expected_code);
+	assert_eq!(overlayed_backend.nonce(authorized_address), U256::ONE);
 }

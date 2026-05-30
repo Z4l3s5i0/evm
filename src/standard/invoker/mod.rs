@@ -403,6 +403,7 @@ where
 				let mut code = vec![0xef, 0x01, 0x00];
 				code.extend_from_slice(target.as_bytes());
 				let _ = handler.set_code(*authorized, code, SetCodeOrigin::Transaction);
+				let _ = handler.inc_nonce(*authorized);
 			}
 		}
 

@@ -140,7 +140,12 @@ where
 				if code.len() == 23 && &code[0..3] == [0xef, 0x01, 0x00] {
 					let target = H160::from_slice(&code[3..23]);
 
-					let gas = if is_cold { 2600 } else { 100 };
+					let config: &Config = state.as_ref();
+					let gas = if is_cold {
+						config.gas_account_access_cold()
+					} else {
+						config.gas_storage_read_warm()
+					};
 					state.record_gas(U256::from(gas))?;
 
 					code_address = target;
