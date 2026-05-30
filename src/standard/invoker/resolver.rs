@@ -131,17 +131,17 @@ where
 		if config.eip7702_code_delegation {
 			let mut depth = 0;
 			while depth < 8 {
+				let is_cold = handler.is_cold(code_address, None);
 				let code = handler.code(code_address);
+				if is_cold {
+					handler.mark_hot(code_address, TouchKind::Access);
+				}
+
 				if code.len() == 23 && &code[0..3] == [0xef, 0x01, 0x00] {
 					let target = H160::from_slice(&code[3..23]);
 
-					let gas = if handler.is_cold(code_address, None) {
-						2600
-					} else {
-						100
-					};
+					let gas = if is_cold { 2600 } else { 100 };
 					state.record_gas(U256::from(gas))?;
-					handler.mark_hot(code_address, TouchKind::Access);
 
 					code_address = target;
 					depth += 1;

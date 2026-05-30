@@ -425,7 +425,6 @@ where
 
 		handler.mark_hot(caller, TouchKind::Access);
 		handler.mark_hot(caller, TouchKind::StateChange);
-		handler.mark_hot(address, TouchKind::Access);
 
 		let machine = match &AsRef::<TransactArgs>::as_ref(&args).call_create {
 			TransactArgsCallCreate::Call { data, .. } => {
