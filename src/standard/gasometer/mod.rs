@@ -133,6 +133,7 @@ impl GasometerState {
 		gas_limit: U256,
 		data: &[u8],
 		access_list: &[(H160, Vec<H256>)],
+		authorization_list: &[(H160, H160)],
 		config: &Config,
 	) -> Result<Self, ExitError> {
 		let gas_limit = if gas_limit > U256::from(u64::MAX) {
@@ -142,7 +143,7 @@ impl GasometerState {
 			gas_limit.low_u64()
 		};
 
-		let cost = TransactionCost::call(data, access_list).cost(config);
+		let cost = TransactionCost::call(data, access_list, authorization_list).cost(config);
 
 		let mut s = Self::new(gas_limit, false);
 		s.records_transaction_cost(cost)?;
@@ -154,6 +155,7 @@ impl GasometerState {
 		gas_limit: U256,
 		code: &[u8],
 		access_list: &[(H160, Vec<H256>)],
+		authorization_list: &[(H160, H160)],
 		config: &Config,
 	) -> Result<Self, ExitError> {
 		let gas_limit = if gas_limit > U256::from(u64::MAX) {
@@ -163,7 +165,7 @@ impl GasometerState {
 			gas_limit.low_u64()
 		};
 
-		let cost = TransactionCost::create(code, access_list).cost(config);
+		let cost = TransactionCost::create(code, access_list, authorization_list).cost(config);
 
 		let mut s = Self::new(gas_limit, false);
 		s.records_transaction_cost(cost)?;
@@ -946,6 +948,8 @@ enum TransactionCost {
 		access_list_address_len: usize,
 		/// Total number of storage keys in transaction access list (see EIP-2930)
 		access_list_storage_len: usize,
+		/// Number of authorizations in transaction authorization list (see EIP-7702)
+		authorization_list_len: usize,
 	},
 	/// Create transaction cost.
 	Create {
@@ -957,6 +961,8 @@ enum TransactionCost {
 		access_list_address_len: usize,
 		/// Total number of storage keys in transaction access list (see EIP-2930)
 		access_list_storage_len: usize,
+		/// Number of authorizations in transaction authorization list (see EIP-7702)
+		authorization_list_len: usize,
 		/// Cost of initcode = 2 * ceil(len(initcode) / 32) (see EIP-3860)
 		initcode_cost: u64,
 	},
@@ -968,7 +974,11 @@ pub struct TransactionGas {
 }
 
 impl TransactionCost {
-	pub fn call(data: &[u8], access_list: &[(H160, Vec<H256>)]) -> TransactionCost {
+	pub fn call(
+		data: &[u8],
+		access_list: &[(H160, Vec<H256>)],
+		authorization_list: &[(H160, H160)],
+	) -> TransactionCost {
 		let zero_data_len = data.iter().filter(|v| **v == 0).count();
 		let non_zero_data_len = data.len() - zero_data_len;
 		let (access_list_address_len, access_list_storage_len) = count_access_list(access_list);
@@ -978,10 +988,15 @@ impl TransactionCost {
 			non_zero_data_len,
 			access_list_address_len,
 			access_list_storage_len,
+			authorization_list_len: authorization_list.len(),
 		}
 	}
 
-	pub fn create(data: &[u8], access_list: &[(H160, Vec<H256>)]) -> TransactionCost {
+	pub fn create(
+		data: &[u8],
+		access_list: &[(H160, Vec<H256>)],
+		authorization_list: &[(H160, H160)],
+	) -> TransactionCost {
 		let zero_data_len = data.iter().filter(|v| **v == 0).count();
 		let non_zero_data_len = data.len() - zero_data_len;
 		let (access_list_address_len, access_list_storage_len) = count_access_list(access_list);
@@ -992,6 +1007,7 @@ impl TransactionCost {
 			non_zero_data_len,
 			access_list_address_len,
 			access_list_storage_len,
+			authorization_list_len: authorization_list.len(),
 			initcode_cost,
 		}
 	}
@@ -1003,12 +1019,14 @@ impl TransactionCost {
 				non_zero_data_len,
 				access_list_address_len,
 				access_list_storage_len,
+				authorization_list_len,
 			} => {
 				let used = config.gas_transaction_call()
 					+ *zero_data_len as u64 * config.gas_transaction_zero_data()
 					+ *non_zero_data_len as u64 * config.gas_transaction_non_zero_data()
 					+ *access_list_address_len as u64 * config.gas_access_list_address()
-					+ *access_list_storage_len as u64 * config.gas_access_list_storage_key();
+					+ *access_list_storage_len as u64 * config.gas_access_list_storage_key()
+					+ *authorization_list_len as u64 * 2500;
 
 				let floor = config
 					.gas_transaction_call()
@@ -1027,7 +1045,8 @@ impl TransactionCost {
 					.saturating_add(
 						(*access_list_storage_len as u64)
 							.saturating_mul(config.gas_access_list_storage_key()),
-					);
+					)
+					.saturating_add((*authorization_list_len as u64).saturating_mul(2500));
 
 				TransactionGas { used, floor }
 			}
@@ -1036,13 +1055,15 @@ impl TransactionCost {
 				non_zero_data_len,
 				access_list_address_len,
 				access_list_storage_len,
+				authorization_list_len,
 				initcode_cost,
 			} => {
 				let mut used = config.gas_transaction_create()
 					+ *zero_data_len as u64 * config.gas_transaction_zero_data()
 					+ *non_zero_data_len as u64 * config.gas_transaction_non_zero_data()
 					+ *access_list_address_len as u64 * config.gas_access_list_address()
-					+ *access_list_storage_len as u64 * config.gas_access_list_storage_key();
+					+ *access_list_storage_len as u64 * config.gas_access_list_storage_key()
+					+ *authorization_list_len as u64 * 2500;
 
 				if config.max_initcode_size().is_some() {
 					used += initcode_cost;
@@ -1065,7 +1086,8 @@ impl TransactionCost {
 					.saturating_add(
 						(*access_list_storage_len as u64)
 							.saturating_mul(config.gas_access_list_storage_key()),
-					);
+					)
+					.saturating_add((*authorization_list_len as u64).saturating_mul(2500));
 
 				TransactionGas { used, floor }
 			}

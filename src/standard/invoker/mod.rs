@@ -222,6 +222,8 @@ pub struct TransactArgs<'config> {
 	pub gas_price: TransactGasPrice,
 	/// Access list information, in the format of (address, storage keys).
 	pub access_list: Vec<(H160, Vec<H256>)>,
+	/// Authorization list information (EIP-7702).
+	pub authorization_list: Vec<(H160, H160)>,
 	/// Config of this arg.
 	pub config: &'config Config,
 }
@@ -393,6 +395,16 @@ where
 		}
 
 		handler.push_substate();
+
+		let config = AsRef::<TransactArgs>::as_ref(&args).config;
+		if config.eip7702_code_delegation {
+			for (authorized, target) in &AsRef::<TransactArgs>::as_ref(&args).authorization_list {
+				handler.mark_hot(*authorized, TouchKind::Access);
+				let mut code = vec![0xef, 0x01, 0x00];
+				code.extend_from_slice(target.as_bytes());
+				let _ = handler.set_code(*authorized, code, SetCodeOrigin::Transaction);
+			}
+		}
 
 		let context = Context {
 			caller,

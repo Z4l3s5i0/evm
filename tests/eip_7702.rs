@@ -10,6 +10,7 @@ use evm::{
 		TransactValue, TransactValueCallCreate,
 	},
 };
+use evm_interpreter::runtime::RuntimeBaseBackend;
 use mock::{MockAccount, MockBackend};
 
 fn transact(
@@ -84,6 +85,7 @@ fn test_eip7702_delegation_gas() {
 		gas_limit: U256::from(100_000),
 		gas_price: U256::from(1).into(),
 		access_list: vec![],
+		authorization_list: vec![],
 		config: &config,
 	};
 
@@ -93,4 +95,53 @@ fn test_eip7702_delegation_gas() {
 	// 7702 delegation (cold): 2600
 	// Total expected: 21000 + 2600 = 23600
 	assert_eq!(result.used_gas, U256::from(23600));
+}
+
+#[test]
+fn test_eip7702_authorization_list_gas() {
+	let mut backend = MockBackend::default();
+	
+	let target_address = H160::from_low_u64_be(0x1337);
+	let authorized_address = H160::from_low_u64_be(0x4242);
+	let caller = H160::from_low_u64_be(1);
+
+	backend.state.insert(
+		caller,
+		MockAccount {
+			balance: U256::from(1_000_000_000),
+			code: vec![],
+			nonce: U256::ONE,
+			storage: Default::default(),
+			transient_storage: Default::default(),
+		},
+	);
+
+	let config = Config::prague();
+	let mut overlayed_backend = OverlayedBackend::new(backend, &config.runtime);
+
+	let args = TransactArgs {
+		call_create: TransactArgsCallCreate::Call {
+			address: H160::from_low_u64_be(0x8888), // Call some empty account
+			data: vec![],
+		},
+		caller,
+		value: U256::ZERO,
+		gas_limit: U256::from(100_000),
+		gas_price: U256::from(1).into(),
+		access_list: vec![],
+		authorization_list: vec![(authorized_address, target_address)],
+		config: &config,
+	};
+
+	let result = transact(args, &mut overlayed_backend).expect("Transaction failed");
+	
+	// Intrinsic gas: 21000
+	// Authorization list (1 entry): 2500
+	// Total expected: 21000 + 2500 = 23500
+	assert_eq!(result.used_gas, U256::from(23500));
+
+	// Verify that authorized_address now has delegation code
+	let mut expected_code = vec![0xef, 0x01, 0x00];
+	expected_code.extend_from_slice(target_address.as_bytes());
+	assert_eq!(overlayed_backend.code(authorized_address), expected_code);
 }

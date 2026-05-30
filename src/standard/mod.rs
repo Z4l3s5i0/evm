@@ -176,7 +176,13 @@ impl<'config> InvokerState for State<'config> {
 		let config = args.config;
 		Ok(Self {
 			runtime,
-			gasometer: GasometerState::new_transact_call(gas_limit, data, access_list, config)?,
+			gasometer: GasometerState::new_transact_call(
+				gas_limit,
+				data,
+				access_list,
+				&args.authorization_list,
+				config,
+			)?,
 			config,
 		})
 	}
@@ -191,7 +197,13 @@ impl<'config> InvokerState for State<'config> {
 		let config = args.config;
 		Ok(Self {
 			runtime,
-			gasometer: GasometerState::new_transact_create(gas_limit, code, access_list, config)?,
+			gasometer: GasometerState::new_transact_create(
+				gas_limit,
+				code,
+				access_list,
+				&args.authorization_list,
+				config,
+			)?,
 			config,
 		})
 	}
