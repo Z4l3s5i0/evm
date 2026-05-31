@@ -1,6 +1,7 @@
 mod resolver;
 pub mod routines;
 mod state;
+mod sign;
 
 use alloc::{boxed::Box, rc::Rc, vec::Vec};
 use core::{cmp::min, marker::PhantomData};
@@ -209,6 +210,23 @@ pub enum TransactArgsCallCreate {
 	},
 }
 
+/// Authorization list information (EIP-7702).
+#[derive(Clone, Debug)]
+pub struct AuthorizationItem {
+	/// Chain ID.
+	pub chain_id: U256,
+	/// Address.
+	pub address: H160,
+	/// Nonce.
+	pub nonce: U256,
+	/// Signature V.
+	pub v: u8,
+	/// Signature R.
+	pub r: H256,
+	/// Signature S.
+	pub s: H256,
+}
+
 /// Transaction arguments.
 #[derive(Clone, Debug)]
 pub struct TransactArgs<'config> {
@@ -225,7 +243,7 @@ pub struct TransactArgs<'config> {
 	/// Access list information, in the format of (address, storage keys).
 	pub access_list: Vec<(H160, Vec<H256>)>,
 	/// Authorization list information (EIP-7702).
-	pub authorization_list: Vec<(H160, H160)>,
+	pub authorization_list: Vec<AuthorizationItem>,
 	/// Config of this arg.
 	pub config: &'config Config,
 }
@@ -400,16 +418,37 @@ where
 
 		let config = AsRef::<TransactArgs>::as_ref(&args).config;
 		if config.eip7702_code_delegation {
-			for (authorized, target) in &AsRef::<TransactArgs>::as_ref(&args).authorization_list {
-				handler.mark_hot(*authorized, TouchKind::Access);
-				let mut code = vec![0xef, 0x01, 0x00];
-				code.extend_from_slice(target.as_bytes());
+			for item in &AsRef::<TransactArgs>::as_ref(&args).authorization_list {
+				// 1. Verify signature and recover authorizer address.
+				let authorized = if let Some(addr) = self::sign::recover_address(
+					item.chain_id,
+					item.address,
+					item.nonce,
+					item.v,
+					item.r,
+					item.s,
+				) {
+					addr
+				} else {
+					continue; // Invalid signature
+				};
 
-				// EIP-7702: Set code and increase nonce.
-				// Note: In a production EVM, we should also verify the signature and chain ID here.
-				// For this implementation, we assume the caller provided pre-verified/authorized pairs.
-				let _ = handler.set_code(*authorized, code, SetCodeOrigin::Transaction);
-				let _ = handler.inc_nonce(*authorized);
+				// 2. Check Chain ID (must be current or 0).
+				if item.chain_id != U256::ZERO && item.chain_id != handler.chain_id() {
+					continue;
+				}
+
+				// 3. Check Nonce.
+				if handler.nonce(authorized) != item.nonce {
+					continue;
+				}
+
+				handler.mark_hot(authorized, TouchKind::Access);
+				let mut code = vec![0xef, 0x01, 0x00];
+				code.extend_from_slice(item.address.as_bytes());
+
+				let _ = handler.set_code(authorized, code, SetCodeOrigin::Transaction);
+				let _ = handler.inc_nonce(authorized);
 			}
 		}
 

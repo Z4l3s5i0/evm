@@ -7,6 +7,7 @@
 mod config;
 mod gasometer;
 mod invoker;
+mod block;
 
 use alloc::vec::Vec;
 use core::marker::PhantomData;
@@ -24,8 +25,9 @@ pub use self::{
 	invoker::{
 		EtableResolver, Invoker, InvokerState, PrecompileSet, Resolver, ResolverOrigin,
 		SubstackInvoke, TransactArgs, TransactArgsCallCreate, TransactGasPrice, TransactInvoke,
-		TransactValue, TransactValueCallCreate, routines,
+		TransactValue, TransactValueCallCreate, routines, AuthorizationItem,
 	},
+	block::BlockExecutor,
 };
 use crate::{MergeStrategy, gasometer::GasMutState};
 

@@ -41,6 +41,10 @@ description = "Ethereum Virtual Machine"
 sha3 = { version = "0.10", default-features = false }
 evm-interpreter = { workspace = true, features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
+ark-bls12-381 = { version = "0.4", default-features = false }
+ark-ec = { version = "0.4", default-features = false }
+ark-ff = { version = "0.4", default-features = false }
+k256 = { version = "0.13", default-features = false, features = ["ecdsa", "arithmetic"] }
 
 [dev-dependencies]
 hex = { version = "0.4", features = [ "serde" ] }

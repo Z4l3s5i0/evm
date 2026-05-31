@@ -11,7 +11,7 @@ use evm_interpreter::{
 	utils::u256_to_usize,
 };
 
-use crate::{MergeStrategy, standard::Config};
+use crate::{MergeStrategy, standard::{Config, AuthorizationItem}};
 
 /// Gasometer state.
 pub struct GasometerState {
@@ -133,7 +133,7 @@ impl GasometerState {
 		gas_limit: U256,
 		data: &[u8],
 		access_list: &[(H160, Vec<H256>)],
-		authorization_list: &[(H160, H160)],
+		authorization_list: &[AuthorizationItem],
 		config: &Config,
 	) -> Result<Self, ExitError> {
 		let gas_limit = if gas_limit > U256::from(u64::MAX) {
@@ -155,7 +155,7 @@ impl GasometerState {
 		gas_limit: U256,
 		code: &[u8],
 		access_list: &[(H160, Vec<H256>)],
-		authorization_list: &[(H160, H160)],
+		authorization_list: &[AuthorizationItem],
 		config: &Config,
 	) -> Result<Self, ExitError> {
 		let gas_limit = if gas_limit > U256::from(u64::MAX) {
@@ -977,7 +977,7 @@ impl TransactionCost {
 	pub fn call(
 		data: &[u8],
 		access_list: &[(H160, Vec<H256>)],
-		authorization_list: &[(H160, H160)],
+		authorization_list: &[AuthorizationItem],
 	) -> TransactionCost {
 		let zero_data_len = data.iter().filter(|v| **v == 0).count();
 		let non_zero_data_len = data.len() - zero_data_len;
@@ -995,7 +995,7 @@ impl TransactionCost {
 	pub fn create(
 		data: &[u8],
 		access_list: &[(H160, Vec<H256>)],
-		authorization_list: &[(H160, H160)],
+		authorization_list: &[AuthorizationItem],
 	) -> TransactionCost {
 		let zero_data_len = data.iter().filter(|v| **v == 0).count();
 		let non_zero_data_len = data.len() - zero_data_len;
