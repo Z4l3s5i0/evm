@@ -17,6 +17,8 @@ pub struct MockAccount {
 #[derive(Clone, Debug, Default)]
 pub struct MockBackend {
 	pub state: BTreeMap<H160, MockAccount>,
+	pub block_number: U256,
+	pub block_hashes: BTreeMap<U256, H256>,
 }
 
 impl MockBackend {
@@ -54,12 +56,12 @@ impl MockBackend {
 }
 
 impl RuntimeEnvironment for MockBackend {
-	fn block_hash(&self, _number: U256) -> H256 {
-		Default::default()
+	fn block_hash(&self, number: U256) -> H256 {
+		self.block_hashes.get(&number).cloned().unwrap_or_default()
 	}
 
 	fn block_number(&self) -> U256 {
-		Default::default()
+		self.block_number
 	}
 
 	fn block_coinbase(&self) -> H160 {

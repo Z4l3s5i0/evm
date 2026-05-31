@@ -108,6 +108,7 @@ where
 }
 
 /// Standard state.
+#[derive(Clone)]
 pub struct State<'config> {
 	/// Runtime state.
 	pub runtime: RuntimeState,

@@ -1,5 +1,5 @@
 mod mock;
-use evm::uint::{H160, U256, U256Ext};
+use evm::uint::{H160, H256, U256, U256Ext};
 use evm::{
 	backend::OverlayedBackend,
 	interpreter::{
@@ -29,7 +29,7 @@ fn transact(
 #[test]
 fn test_eip7702_delegation_gas() {
 	let mut backend = MockBackend::default();
-	
+
 	// Target contract: simply STOP
 	let target_address = H160::from_low_u64_be(0x1337);
 	backend.state.insert(
@@ -47,7 +47,7 @@ fn test_eip7702_delegation_gas() {
 	let delegated_address = H160::from_low_u64_be(0x7702);
 	let mut delegation_code = vec![0xef, 0x01, 0x00];
 	delegation_code.extend_from_slice(target_address.as_bytes());
-	
+
 	backend.state.insert(
 		delegated_address,
 		MockAccount {
@@ -81,7 +81,7 @@ fn test_eip7702_delegation_gas() {
 			data: vec![],
 		},
 		caller,
-		value: U256::ZERO,
+		value: U256::zero(),
 		gas_limit: U256::from(100_000),
 		gas_price: U256::from(1).into(),
 		access_list: vec![],
@@ -90,7 +90,7 @@ fn test_eip7702_delegation_gas() {
 	};
 
 	let result = transact(args, &mut overlayed_backend).expect("Transaction failed");
-	
+
 	// Intrinsic gas: 21000
 	// 7702 delegation (cold): 2600
 	// Total expected: 21000 + 2600 = 23600
@@ -100,19 +100,30 @@ fn test_eip7702_delegation_gas() {
 #[test]
 fn test_eip7702_authorization_list_gas() {
 	let mut backend = MockBackend::default();
-	
+
 	let target_address = H160::from_low_u64_be(0x1337);
 	let authorized_address = H160::from_low_u64_be(0x4242);
 	let caller = H160::from_low_u64_be(1);
 
 	backend.state.insert(
+		target_address,
+		MockAccount {
+			code: vec![0x00],
+			..Default::default()
+		},
+	);
+	backend.state.insert(
+		authorized_address,
+		MockAccount {
+			..Default::default()
+		},
+	);
+	backend.state.insert(
 		caller,
 		MockAccount {
 			balance: U256::from(1_000_000_000),
-			code: vec![],
 			nonce: U256::ONE,
-			storage: Default::default(),
-			transient_storage: Default::default(),
+			..Default::default()
 		},
 	);
 
@@ -125,16 +136,30 @@ fn test_eip7702_authorization_list_gas() {
 			data: vec![],
 		},
 		caller,
-		value: U256::ZERO,
+		value: U256::zero(),
 		gas_limit: U256::from(100_000),
 		gas_price: U256::from(1).into(),
 		access_list: vec![],
-		authorization_list: vec![(authorized_address, target_address)],
+		authorization_list: vec![evm::standard::AuthorizationItem {
+			chain_id: U256::zero(),
+			address: authorized_address,
+			nonce: U256::zero(),
+			target: target_address,
+			v: 0,
+			r: H256::zero(),
+			s: H256::zero(),
+		}],
 		config: &config,
 	};
 
 	let result = transact(args, &mut overlayed_backend).expect("Transaction failed");
-	
+	match result.call_create {
+		evm::standard::TransactValueCallCreate::Call { succeed, .. } => {
+			assert_eq!(succeed, evm::interpreter::ExitSucceed::Stopped);
+		}
+		_ => panic!("Expected Call"),
+	}
+
 	// Intrinsic gas: 21000
 	// Authorization list (1 entry): 2500
 	// Total expected: 21000 + 2500 = 23500

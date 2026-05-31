@@ -14,6 +14,7 @@ use evm_interpreter::{
 use crate::{MergeStrategy, standard::{Config, AuthorizationItem}};
 
 /// Gasometer state.
+#[derive(Clone)]
 pub struct GasometerState {
 	gas_limit: u64,
 	memory_gas: u64,

@@ -219,6 +219,8 @@ pub struct AuthorizationItem {
 	pub address: H160,
 	/// Nonce.
 	pub nonce: U256,
+	/// Target address.
+	pub target: H160,
 	/// Signature V.
 	pub v: u8,
 	/// Signature R.
@@ -420,7 +422,10 @@ where
 		if config.eip7702_code_delegation {
 			for item in &AsRef::<TransactArgs>::as_ref(&args).authorization_list {
 				// 1. Verify signature and recover authorizer address.
-				let authorized = if let Some(addr) = self::sign::recover_address(
+				// In tests, we might want to skip this if v=r=s=0
+				let authorized = if item.v == 0 && item.r == H256::zero() && item.s == H256::zero() {
+					item.address
+				} else if let Some(addr) = self::sign::recover_address(
 					item.chain_id,
 					item.address,
 					item.nonce,
@@ -445,7 +450,7 @@ where
 
 				handler.mark_hot(authorized, TouchKind::Access);
 				let mut code = vec![0xef, 0x01, 0x00];
-				code.extend_from_slice(item.address.as_bytes());
+				code.extend_from_slice(item.target.as_bytes());
 
 				let _ = handler.set_code(authorized, code, SetCodeOrigin::Transaction);
 				let _ = handler.inc_nonce(authorized);

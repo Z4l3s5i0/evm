@@ -57,6 +57,7 @@ fn self_destruct_before_cancun() {
 		gas_limit: U256::from(400_000),
 		gas_price: U256::from(1).into(),
 		access_list: vec![],
+		authorization_list: vec![],
 		config: &config,
 	};
 
@@ -92,6 +93,7 @@ fn self_destruct_before_cancun() {
 		gas_limit: U256::from(400_000),
 		gas_price: U256::ONE.into(),
 		access_list: vec![],
+		authorization_list: vec![],
 		config: &config,
 	};
 
@@ -130,6 +132,7 @@ fn self_destruct_cancun() {
 		gas_limit: U256::from(400_000),
 		gas_price: U256::from(1).into(),
 		access_list: vec![],
+		authorization_list: vec![],
 		config: &config,
 	};
 
@@ -165,6 +168,7 @@ fn self_destruct_cancun() {
 		gas_limit: U256::from(400_000),
 		gas_price: U256::ONE.into(),
 		access_list: vec![],
+		authorization_list: vec![],
 		config: &config,
 	};
 
@@ -203,6 +207,7 @@ fn self_destruct_same_tx_cancun() {
 		gas_limit: U256::from(400_000),
 		gas_price: U256::from(1).into(),
 		access_list: vec![],
+		authorization_list: vec![],
 		config: &config,
 	};
 

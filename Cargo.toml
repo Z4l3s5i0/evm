@@ -48,6 +48,7 @@ k256 = { version = "0.13", default-features = false, features = ["ecdsa", "arith
 
 [dev-dependencies]
 hex = { version = "0.4", features = [ "serde" ] }
+evm-precompile = { workspace = true }
 
 [features]
 default = ["std"]
