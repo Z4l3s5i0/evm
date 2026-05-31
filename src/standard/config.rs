@@ -96,6 +96,8 @@ pub struct Config {
 	pub eip2537_bls12_381_precompiles: bool,
 	/// EIP-7685: General purpose execution layer requests.
 	pub eip7685_execution_layer_requests: bool,
+	/// EIP-4788: Beacon block root in state.
+	pub eip4788_beacon_root: bool,
 }
 
 impl Config {
@@ -147,6 +149,7 @@ impl Config {
 			eip2935_historical_block_hashes: false,
 			eip2537_bls12_381_precompiles: false,
 			eip7685_execution_layer_requests: false,
+			eip4788_beacon_root: false,
 		}
 	}
 
@@ -247,6 +250,8 @@ impl Config {
 		config.eip1153_transient_storage = true;
 		config.eip5656_mcopy = true;
 		config.runtime.eip6780_suicide_only_in_same_tx = true;
+		config.runtime.eip4788_beacon_root = true;
+		config.eip4788_beacon_root = true;
 		config.eip4844_shard_blob = true;
 		config.eip7516_blob_base_fee = true;
 		config
@@ -256,9 +261,10 @@ impl Config {
 	pub const fn prague() -> Config {
 		let mut config = Self::cancun();
 		config.runtime.eip2935_historical_block_hashes = true;
+		config.runtime.eip4788_beacon_root = true;
+		config.eip4788_beacon_root = true;
 		config.eip7623_calldata_floor = true;
 		config.eip7702_code_delegation = true;
-		config.eip2935_historical_block_hashes = true;
 		config.eip2537_bls12_381_precompiles = true;
 		config.eip7685_execution_layer_requests = true;
 		config

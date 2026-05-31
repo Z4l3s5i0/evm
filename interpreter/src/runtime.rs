@@ -38,6 +38,8 @@ pub struct RuntimeConfig {
 	pub eip3651_warm_coinbase_address: bool,
 	/// EIP-2935: Historical block hashes from state.
 	pub eip2935_historical_block_hashes: bool,
+	/// EIP-4788: Beacon block root in state.
+	pub eip4788_beacon_root: bool,
 }
 
 impl RuntimeConfig {
@@ -49,6 +51,7 @@ impl RuntimeConfig {
 			eip6780_suicide_only_in_same_tx: false,
 			eip3651_warm_coinbase_address: false,
 			eip2935_historical_block_hashes: false,
+			eip4788_beacon_root: false,
 		}
 	}
 
@@ -60,6 +63,7 @@ impl RuntimeConfig {
 			eip7610_create_check_storage: true,
 			eip3651_warm_coinbase_address: false,
 			eip2935_historical_block_hashes: false,
+			eip4788_beacon_root: false,
 		}
 	}
 }

@@ -2,6 +2,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use ark_bls12_381::{Fq, Fq2, G1Affine, G2Affine, G1Projective, G2Projective, Bls12_381};
 use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
+use ark_ec::hashing::{curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurve};
 use ark_ec::pairing::Pairing;
 use ark_ff::{BigInteger, PrimeField, Zero, One};
 use evm::uint::U256;
@@ -328,22 +329,34 @@ impl<G: GasMutState> PurePrecompile<G> for Bls12381Pairing {
 
 pub struct Bls12381MapG1;
 impl<G: GasMutState> PurePrecompile<G> for Bls12381MapG1 {
-	fn execute(&self, _input: &[u8], gasometer: &mut G) -> (ExitResult, Vec<u8>) {
+	fn execute(&self, input: &[u8], gasometer: &mut G) -> (ExitResult, Vec<u8>) {
 		if let Err(e) = gasometer.record_gas(U256::from(5500u64)) {
 			return (Err(e), Vec::new());
 		}
-		// TODO: Implement MapFpToG1
-		(Err(ExitException::Other("not implemented".into()).into()), Vec::new())
+		let fp = match read_fp(input) {
+			Ok(fp) => fp,
+			Err(e) => return (Err(e), Vec::new()),
+		};
+		let res = WBMap::map_to_curve(fp)
+			.expect("map_to_curve is infallible")
+			.clear_cofactor();
+		(ExitSucceed::Returned.into(), encode_g1_point(res))
 	}
 }
 
 pub struct Bls12381MapG2;
 impl<G: GasMutState> PurePrecompile<G> for Bls12381MapG2 {
-	fn execute(&self, _input: &[u8], gasometer: &mut G) -> (ExitResult, Vec<u8>) {
+	fn execute(&self, input: &[u8], gasometer: &mut G) -> (ExitResult, Vec<u8>) {
 		if let Err(e) = gasometer.record_gas(U256::from(110000u64)) {
 			return (Err(e), Vec::new());
 		}
-		// TODO: Implement MapFp2ToG2
-		(Err(ExitException::Other("not implemented".into()).into()), Vec::new())
+		let fp2 = match read_fp2(input) {
+			Ok(fp2) => fp2,
+			Err(e) => return (Err(e), Vec::new()),
+		};
+		let res = WBMap::map_to_curve(fp2)
+			.expect("map_to_curve is infallible")
+			.clear_cofactor();
+		(ExitSucceed::Returned.into(), encode_g2_point(res))
 	}
 }
