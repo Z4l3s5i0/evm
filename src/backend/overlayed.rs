@@ -38,6 +38,8 @@ pub struct OverlayedChangeSet {
 	pub transient_storage: BTreeMap<(H160, H256), H256>,
 	/// Accessed addresses or storage values.
 	pub accessed: BTreeSet<(H160, Option<H256>)>,
+	/// Execution layer requests (EIP-7685).
+	pub requests: Vec<(u8, Vec<u8>)>,
 	/// Touch those account and create empty if necessary.
 	pub touched: BTreeSet<H160>,
 	/// Deleted accounts.
@@ -100,6 +102,7 @@ impl<B: RuntimeEnvironment + RuntimeBaseBackend> OverlayedBackend<'_, B> {
 				transient_storage: self.substate.transient_storage,
 				deletes: self.substate.deletes,
 				accessed: self.substate.accessed,
+				requests: self.substate.requests,
 				touched,
 			},
 		)
@@ -149,6 +152,9 @@ impl<B: RuntimeEnvironment> RuntimeEnvironment for OverlayedBackend<'_, B> {
 
 	fn chain_id(&self) -> U256 {
 		self.backend.chain_id()
+	}
+	fn requests(&self) -> Vec<(u8, Vec<u8>)> {
+		self.substate.requests.clone()
 	}
 }
 
@@ -374,6 +380,11 @@ impl<B: RuntimeBaseBackend> RuntimeBackend for OverlayedBackend<'_, B> {
 		self.substate.nonces.insert(address, new_nonce);
 		Ok(())
 	}
+
+	fn push_request(&mut self, request_type: u8, data: Vec<u8>) -> Result<(), ExitError> {
+		self.substate.requests.push((request_type, data));
+		Ok(())
+	}
 }
 
 impl<'config, B: RuntimeBaseBackend> TransactionalBackend for OverlayedBackend<'config, B> {
@@ -429,6 +440,9 @@ impl<'config, B: RuntimeBaseBackend> TransactionalBackend for OverlayedBackend<'
 				for item in child.accessed {
 					self.substate.accessed.insert(item);
 				}
+				for request in child.requests {
+					self.substate.requests.push(request);
+				}
 			}
 			MergeStrategy::Revert | MergeStrategy::Discard => {}
 		}
@@ -450,6 +464,7 @@ struct Substate {
 	creates: BTreeSet<H160>,
 	touched: BTreeSet<H160>,
 	accessed: BTreeSet<(H160, Option<H256>)>,
+	requests: Vec<(u8, Vec<u8>)>,
 }
 
 impl Substate {
@@ -467,6 +482,7 @@ impl Substate {
 			creates: Default::default(),
 			touched: Default::default(),
 			accessed: Default::default(),
+			requests: Default::default(),
 		}
 	}
 

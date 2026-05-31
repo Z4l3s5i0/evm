@@ -17,6 +17,7 @@ macro_rules! try_some {
 extern crate alloc;
 
 mod blake2;
+mod bls12_381;
 mod bn128;
 mod kzg;
 mod modexp;
@@ -26,6 +27,10 @@ use alloc::vec::Vec;
 
 use crate::{
 	blake2::Blake2F,
+	bls12_381::{
+		Bls12381G1Add, Bls12381G1Mul, Bls12381G1MultiExp, Bls12381G2Add, Bls12381G2Mul,
+		Bls12381G2MultiExp, Bls12381MapG1, Bls12381MapG2, Bls12381Pairing,
+	},
 	bn128::{
 		Bn128AddByzantium, Bn128AddIstanbul, Bn128MulByzantium, Bn128MulIstanbul,
 		Bn128PairingByzantium, Bn128PairingIstanbul,
@@ -79,6 +84,18 @@ impl<G: AsRef<RuntimeState> + AsRef<Config> + GasMutState, H: RuntimeBackend> Pr
 
 		if AsRef::<Config>::as_ref(state).eip4844_shard_blob {
 			handler.mark_hot(address(10), TouchKind::Access);
+		}
+
+		if AsRef::<Config>::as_ref(state).eip2537_bls12_381_precompiles {
+			handler.mark_hot(address(11), TouchKind::Access);
+			handler.mark_hot(address(12), TouchKind::Access);
+			handler.mark_hot(address(13), TouchKind::Access);
+			handler.mark_hot(address(14), TouchKind::Access);
+			handler.mark_hot(address(15), TouchKind::Access);
+			handler.mark_hot(address(16), TouchKind::Access);
+			handler.mark_hot(address(17), TouchKind::Access);
+			handler.mark_hot(address(18), TouchKind::Access);
+			handler.mark_hot(address(19), TouchKind::Access);
 		}
 	}
 
@@ -137,6 +154,28 @@ impl<G: AsRef<RuntimeState> + AsRef<Config> + GasMutState, H: RuntimeBackend> Pr
 			&& code_address == address(10)
 		{
 			Some(KZGPointEvaluation.execute(input, gasometer))
+		} else if AsRef::<Config>::as_ref(gasometer).eip2537_bls12_381_precompiles {
+			if code_address == address(11) {
+				Some(Bls12381G1Add.execute(input, gasometer))
+			} else if code_address == address(12) {
+				Some(Bls12381G1Mul.execute(input, gasometer))
+			} else if code_address == address(13) {
+				Some(Bls12381G1MultiExp.execute(input, gasometer))
+			} else if code_address == address(14) {
+				Some(Bls12381G2Add.execute(input, gasometer))
+			} else if code_address == address(15) {
+				Some(Bls12381G2Mul.execute(input, gasometer))
+			} else if code_address == address(16) {
+				Some(Bls12381G2MultiExp.execute(input, gasometer))
+			} else if code_address == address(17) {
+				Some(Bls12381Pairing.execute(input, gasometer))
+			} else if code_address == address(18) {
+				Some(Bls12381MapG1.execute(input, gasometer))
+			} else if code_address == address(19) {
+				Some(Bls12381MapG2.execute(input, gasometer))
+			} else {
+				None
+			}
 		} else {
 			None
 		}

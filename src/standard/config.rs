@@ -90,6 +90,12 @@ pub struct Config {
 	pub eip7623_calldata_floor: bool,
 	/// EIP-7702: Account code delegation.
 	pub eip7702_code_delegation: bool,
+	/// EIP-2935: Historical block hashes from state.
+	pub eip2935_historical_block_hashes: bool,
+	/// EIP-2537: BLS12-381 precompiles.
+	pub eip2537_bls12_381_precompiles: bool,
+	/// EIP-7685: General purpose execution layer requests.
+	pub eip7685_execution_layer_requests: bool,
 }
 
 impl Config {
@@ -138,6 +144,9 @@ impl Config {
 			eip7516_blob_base_fee: false,
 			eip7623_calldata_floor: false,
 			eip7702_code_delegation: false,
+			eip2935_historical_block_hashes: false,
+			eip2537_bls12_381_precompiles: false,
+			eip7685_execution_layer_requests: false,
 		}
 	}
 
@@ -246,8 +255,12 @@ impl Config {
 	/// Prague
 	pub const fn prague() -> Config {
 		let mut config = Self::cancun();
+		config.runtime.eip2935_historical_block_hashes = true;
 		config.eip7623_calldata_floor = true;
 		config.eip7702_code_delegation = true;
+		config.eip2935_historical_block_hashes = true;
+		config.eip2537_bls12_381_precompiles = true;
+		config.eip7685_execution_layer_requests = true;
 		config
 	}
 
@@ -408,7 +421,7 @@ impl Config {
 
 	/// Gas paid per authorization in transaction authorization list (see EIP-7702).
 	pub fn gas_authorization_list_item(&self) -> u64 {
-		if self.eip7702_code_delegation { 2500 } else { 0 }
+		2500
 	}
 
 	/// Gas paid for accessing cold account.

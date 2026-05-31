@@ -2,13 +2,12 @@ use alloc::vec::Vec;
 
 use sha3::{Digest, Keccak256};
 
-#[allow(unused_imports)]
-use crate::uint::{H256, U256, U256Ext};
-
 use crate::{
-	Control, ExitException, ExitFatal, ExitSucceed, Machine,
-	runtime::{GasState, Log, RuntimeBackend, RuntimeEnvironment, RuntimeState, Transfer},
+	Control, ExitException, ExitSucceed, Machine, ExitFatal,
+	runtime::{GasState, Log, RuntimeBackend, RuntimeEnvironment, RuntimeState, Transfer, RuntimeConfig},
 };
+#[allow(unused_imports)]
+use crate::uint::{H160, H256, U256, U256Ext};
 
 #[allow(deprecated)]
 pub fn sha3<S: AsRef<RuntimeState>, Tr>(machine: &mut Machine<S>) -> Control<Tr> {
@@ -204,12 +203,33 @@ pub fn returndatacopy<S: AsRef<RuntimeState>, Tr>(machine: &mut Machine<S>) -> C
 	}
 }
 
-pub fn blockhash<S: AsRef<RuntimeState>, H: RuntimeEnvironment + RuntimeBackend, Tr>(
+pub fn blockhash<
+	S: AsRef<RuntimeState>,
+	H: RuntimeEnvironment + RuntimeBackend,
+	C: AsRef<RuntimeConfig>,
+	Tr,
+>(
 	machine: &mut Machine<S>,
 	handler: &H,
+	config: &C,
 ) -> Control<Tr> {
 	pop_u256!(machine, number);
-	push_h256!(machine, handler.block_hash(number));
+
+	if config.as_ref().eip2935_historical_block_hashes {
+		let current_number = handler.block_number();
+		if number < current_number && current_number <= number + U256::from(256u64) {
+			push_h256!(machine, handler.block_hash(number));
+		} else {
+			let history_storage_address =
+				H160([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x29, 0x35]);
+			let mut index_bytes = [0u8; 32];
+			(number % U256::from(8192u64)).to_big_endian(&mut index_bytes);
+			let index = H256::from(index_bytes);
+			push_h256!(machine, handler.storage(history_storage_address, index));
+		}
+	} else {
+		push_h256!(machine, handler.block_hash(number));
+	}
 
 	Control::Continue(1)
 }

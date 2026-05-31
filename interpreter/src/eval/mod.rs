@@ -609,12 +609,17 @@ pub fn eval_returndatacopy<S: AsRef<RuntimeState>, H: RuntimeEnvironment + Runti
 }
 
 /// `BLOCKHASH`
-pub fn eval_blockhash<S: AsRef<RuntimeState>, H: RuntimeEnvironment + RuntimeBackend, Tr>(
+pub fn eval_blockhash<
+	S: AsRef<RuntimeState> + AsRef<RuntimeConfig>,
+	H: RuntimeEnvironment + RuntimeBackend,
+	Tr,
+>(
 	machine: &mut Machine<S>,
 	handle: &mut H,
 	_position: usize,
 ) -> Control<Tr> {
-	self::system::blockhash(machine, handle)
+	let config: RuntimeConfig = AsRef::<RuntimeConfig>::as_ref(&machine.state).clone();
+	self::system::blockhash(machine, handle, &config)
 }
 
 /// `COINBASE`
@@ -946,7 +951,7 @@ where
 		Opcode::RETURNDATACOPY => eval_returndatacopy(machine, handle, position),
 		Opcode::EXTCODEHASH => eval_extcodehash(machine, handle, position),
 
-		Opcode::BLOCKHASH => eval_blockhash(machine, handle, position),
+		Opcode::BLOCKHASH => eval_blockhash::<S, H, Tr>(machine, handle, position),
 		Opcode::COINBASE => eval_coinbase(machine, handle, position),
 		Opcode::TIMESTAMP => eval_timestamp(machine, handle, position),
 		Opcode::NUMBER => eval_number(machine, handle, position),

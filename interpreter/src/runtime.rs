@@ -36,6 +36,8 @@ pub struct RuntimeConfig {
 	pub eip6780_suicide_only_in_same_tx: bool,
 	/// EIP-3651
 	pub eip3651_warm_coinbase_address: bool,
+	/// EIP-2935: Historical block hashes from state.
+	pub eip2935_historical_block_hashes: bool,
 }
 
 impl RuntimeConfig {
@@ -46,6 +48,7 @@ impl RuntimeConfig {
 			eip7610_create_check_storage: true,
 			eip6780_suicide_only_in_same_tx: false,
 			eip3651_warm_coinbase_address: false,
+			eip2935_historical_block_hashes: false,
 		}
 	}
 
@@ -56,6 +59,7 @@ impl RuntimeConfig {
 			eip6780_suicide_only_in_same_tx: false,
 			eip7610_create_check_storage: true,
 			eip3651_warm_coinbase_address: false,
+			eip2935_historical_block_hashes: false,
 		}
 	}
 }
@@ -87,6 +91,18 @@ impl RuntimeStateAndConfig<'static> {
 	}
 }
 
+impl AsRef<RuntimeConfig> for RuntimeConfig {
+	fn as_ref(&self) -> &RuntimeConfig {
+		self
+	}
+}
+
+impl<'config> AsRef<RuntimeConfig> for RuntimeStateAndConfig<'config> {
+	fn as_ref(&self) -> &RuntimeConfig {
+		self.config
+	}
+}
+
 impl AsRef<RuntimeState> for RuntimeState {
 	fn as_ref(&self) -> &RuntimeState {
 		self
@@ -108,12 +124,6 @@ impl AsMut<RuntimeState> for RuntimeState {
 impl<'config> AsMut<RuntimeState> for RuntimeStateAndConfig<'config> {
 	fn as_mut(&mut self) -> &mut RuntimeState {
 		&mut self.state
-	}
-}
-
-impl<'config> AsRef<RuntimeConfig> for RuntimeStateAndConfig<'config> {
-	fn as_ref(&self) -> &RuntimeConfig {
-		self.config
 	}
 }
 
@@ -205,6 +215,10 @@ pub trait RuntimeEnvironment {
 	fn blob_base_fee_per_gas(&self) -> U256;
 	/// Get environmental chain ID.
 	fn chain_id(&self) -> U256;
+	/// Get gathered requests.
+	fn requests(&self) -> Vec<(u8, Vec<u8>)> {
+		Vec::new()
+	}
 }
 
 /// Runtime base backend. The immutable and limited part of [RuntimeBackend].
@@ -314,4 +328,6 @@ pub trait RuntimeBackend: RuntimeBaseBackend {
 	}
 	/// Increase the nonce value.
 	fn inc_nonce(&mut self, address: H160) -> Result<(), ExitError>;
+	/// Push an execution layer request.
+	fn push_request(&mut self, request_type: u8, data: Vec<u8>) -> Result<(), ExitError>;
 }

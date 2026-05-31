@@ -76,6 +76,8 @@ pub struct TransactValue {
 	pub used_gas: U256,
 	/// Total instructions executed.
 	pub instruction_count: u64,
+	/// Execution layer requests (EIP-7685).
+	pub requests: Vec<(u8, Vec<u8>)>,
 }
 
 /// Transact gas price.
@@ -402,6 +404,10 @@ where
 				handler.mark_hot(*authorized, TouchKind::Access);
 				let mut code = vec![0xef, 0x01, 0x00];
 				code.extend_from_slice(target.as_bytes());
+
+				// EIP-7702: Set code and increase nonce.
+				// Note: In a production EVM, we should also verify the signature and chain ID here.
+				// For this implementation, we assume the caller provided pre-verified/authorized pairs.
 				let _ = handler.set_code(*authorized, code, SetCodeOrigin::Transaction);
 				let _ = handler.inc_nonce(*authorized);
 			}
@@ -570,10 +576,19 @@ where
 			.coinbase_reward(used_gas, invoke.config, handler);
 		handler.deposit(handler.block_coinbase(), coinbase_reward);
 
-		result.map(|call_create| TransactValue {
-			call_create,
-			used_gas,
-			instruction_count: exit.instruction_count,
+		result.map(|call_create| {
+			let requests = if invoke.config.eip7685_execution_layer_requests {
+				handler.requests()
+			} else {
+				Vec::new()
+			};
+
+			TransactValue {
+				call_create,
+				used_gas,
+				instruction_count: exit.instruction_count,
+				requests,
+			}
 		})
 	}
 
