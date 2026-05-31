@@ -49,15 +49,35 @@ impl BlockExecutor {
         // EIP-2935: History storage contract
         if config.eip2935_historical_block_hashes {
             let parent_hash = handler.block_hash(handler.block_number().saturating_sub(U256::from(1)));
-            let index = handler.block_number().saturating_sub(U256::from(parent_hash.is_zero() as u64)) % U256::from(8192);
-            let mut index_bytes = [0u8; 32];
-            index.to_big_endian(&mut index_bytes);
 
-            let _ = handler.set_storage(
-                Self::HISTORY_STORAGE_ADDRESS,
-                H256::from_slice(&index_bytes),
-                parent_hash
-            );
+            let args = TransactArgs {
+                caller: H160::default(),
+                call_create: TransactArgsCallCreate::Call {
+                    address: Self::HISTORY_STORAGE_ADDRESS,
+                    data: parent_hash.as_bytes().to_vec(),
+                },
+                value: U256::ZERO,
+                gas_limit: U256::from(30_000_000), // Max gas for system call
+                gas_price: TransactGasPrice::Legacy(U256::ZERO),
+                access_list: Vec::new(),
+                authorization_list: Vec::new(),
+                config,
+            };
+
+            if let Ok((invoke, control)) = invoker.new_transact(args, handler) {
+                if let InvokerControl::Enter(mut machine) = control {
+                    let exit = machine.run(handler);
+                    if let evm_interpreter::Capture::Exit(res) = exit {
+                        let machine_state = machine.state();
+                        let _ = invoker.finalize_transact(&invoke, InvokerExit {
+                            result: res,
+                            substate: Some(machine_state.clone()),
+                            retval: Vec::new(),
+                            instruction_count: 0,
+                        }, handler);
+                    }
+                }
+            }
         }
 
         // EIP-4788: Beacon root contract
